@@ -114,7 +114,6 @@ def simulate_reading(site_id: str, interval_seconds: float = 1.0, noise: float =
         interval_hours = interval_seconds / 3600.0
         soc = max(0.0, soc - battery_discharge_kw * interval_hours / cap * 100)
 
-    soc = round(soc, 1)
     _battery_soc_state[site_id] = soc
 
     # --- Grid ---
@@ -129,7 +128,7 @@ def simulate_reading(site_id: str, interval_seconds: float = 1.0, noise: float =
         "solar_generation_kw": solar_kw,
         "wind_generation_kw": wind_kw,
         "energy_consumption_kw": demand_kw,
-        "battery_soc_pct": soc,
+        "battery_soc_pct": round(soc, 1),
         "battery_charge_kw": battery_charge_kw,
         "battery_discharge_kw": battery_discharge_kw,
         "grid_import_kw": grid_import_kw,

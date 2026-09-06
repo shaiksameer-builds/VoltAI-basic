@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/Header';
 import KPICards from './components/KPICards';
 import EnergyOverviewChart from './components/EnergyOverviewChart';
@@ -28,41 +28,56 @@ export default function App() {
   const [weatherRecords, setWeatherRecords] = useState([]);
   const [aiStatus, setAIStatus] = useState(null);
   const [aiResponse, setAIResponse] = useState(null);
+  const [latestTelemetry, setLatestTelemetry] = useState(null);
 
   // Loading states
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
 
-  // Fetch data for selected site
+  // Live telemetry connection refs
+  const websocketRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptRef = useRef(0);
+
+  // Fetch dashboard data
   const loadDashboardData = useCallback(async () => {
     try {
-      // 1. Health check
-      VoltAIAPI.getHealth().then((h) => setHealthStatus(h.status)).catch(() => setHealthStatus('degraded'));
+      VoltAIAPI.getHealth()
+        .then((h) => setHealthStatus(h.status))
+        .catch(() => setHealthStatus('degraded'));
 
-      // 2. Summary & Daily analytics
       const [sum, daily] = await Promise.allSettled([
         VoltAIAPI.getSummary(selectedSite),
         VoltAIAPI.getDailyAnalytics(selectedSite),
       ]);
-      if (sum.status === 'fulfilled') setSummary(sum.value);
-      if (daily.status === 'fulfilled') setDailyAnalytics(daily.value);
 
-      // 3. Optimization
+      if (sum.status === 'fulfilled') {
+        setSummary(sum.value);
+      }
+
+      if (daily.status === 'fulfilled') {
+        setDailyAnalytics(daily.value);
+      }
+
       VoltAIAPI.getOptimizationSchedule(selectedSite)
         .then((opt) => setOptimizationData(opt))
         .catch((e) => console.warn('Opt fetch error:', e.message));
 
-      // 4. Anomalies
       VoltAIAPI.getAnomalies(selectedSite)
         .then((anom) => setAnomalies(Array.isArray(anom) ? anom : []))
         .catch((e) => console.warn('Anom fetch error:', e.message));
 
-      // 5. Weather
-      VoltAIAPI.getWeatherStatus().then((w) => setWeatherStatus(w)).catch(() => {});
-      VoltAIAPI.getWeatherRecords(selectedSite).then((w) => setWeatherRecords(w || [])).catch(() => {});
+      VoltAIAPI.getWeatherStatus()
+        .then((w) => setWeatherStatus(w))
+        .catch(() => {});
 
-      // 6. AI Status
-      VoltAIAPI.getAIStatus().then((ai) => setAIStatus(ai)).catch(() => {});
+      VoltAIAPI.getWeatherRecords(selectedSite)
+        .then((w) => setWeatherRecords(w || []))
+        .catch(() => {});
+
+      VoltAIAPI.getAIStatus()
+        .then((ai) => setAIStatus(ai))
+        .catch(() => {});
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     }
@@ -71,8 +86,14 @@ export default function App() {
   // Forecast fetch
   const loadForecast = useCallback(async () => {
     setIsLoadingForecast(true);
+
     try {
-      const data = await VoltAIAPI.getForecast(selectedSite, forecastTarget, 24);
+      const data = await VoltAIAPI.getForecast(
+        selectedSite,
+        forecastTarget,
+        24
+      );
+
       setForecastData(data);
     } catch (err) {
       console.warn('Forecast error:', err.message);
@@ -81,18 +102,125 @@ export default function App() {
     }
   }, [selectedSite, forecastTarget]);
 
-  // Initial & site change trigger
+  // Initial/site-change dashboard refresh
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
 
+  // Forecast refresh
   useEffect(() => {
     loadForecast();
   }, [loadForecast]);
 
-  // AI Actions
+  // Live telemetry WebSocket
+  useEffect(() => {
+    if (!isLiveMode) {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+
+      if (websocketRef.current) {
+        websocketRef.current.close();
+        websocketRef.current = null;
+      }
+
+      reconnectAttemptRef.current = 0;
+      setLatestTelemetry(null);
+
+      return undefined;
+    }
+
+    let isEffectActive = true;
+
+    const connectWebSocket = () => {
+      if (!isEffectActive) {
+        return;
+      }
+
+      if (websocketRef.current) {
+        websocketRef.current.close();
+        websocketRef.current = null;
+      }
+
+      const wsUrl =
+        `ws://127.0.0.1:8000/api/v1/telemetry/stream/` +
+        `${encodeURIComponent(selectedSite)}?interval_ms=1000`;
+
+      console.info(`VoltAI telemetry connecting: ${wsUrl}`);
+
+      const socket = new WebSocket(wsUrl);
+      websocketRef.current = socket;
+
+      socket.onopen = () => {
+        reconnectAttemptRef.current = 0;
+        console.info('VoltAI telemetry WebSocket connected');
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (payload.type === 'telemetry') {
+            setLatestTelemetry(payload);
+          }
+        } catch (error) {
+          console.warn('Invalid telemetry message:', error);
+        }
+      };
+
+      socket.onerror = () => {
+        console.warn('VoltAI telemetry WebSocket error');
+      };
+
+      socket.onclose = () => {
+        if (websocketRef.current === socket) {
+          websocketRef.current = null;
+        }
+
+        if (!isEffectActive) {
+          return;
+        }
+
+        const attempt = reconnectAttemptRef.current;
+        const delay = Math.min(1000 * 2 ** attempt, 10000);
+
+        reconnectAttemptRef.current = attempt + 1;
+
+        console.info(
+          `VoltAI telemetry reconnecting in ${delay}ms ` +
+          `(attempt ${attempt + 1})`
+        );
+
+        reconnectTimerRef.current = setTimeout(() => {
+          if (isEffectActive) {
+            connectWebSocket();
+          }
+        }, delay);
+      };
+    };
+
+    connectWebSocket();
+
+    return () => {
+      isEffectActive = false;
+
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+
+      if (websocketRef.current) {
+        websocketRef.current.close();
+        websocketRef.current = null;
+      }
+    };
+  }, [isLiveMode, selectedSite]);
+
+  // AI actions
   const handleAskAI = async (query) => {
     setIsLoadingAI(true);
+
     try {
       const res = await VoltAIAPI.askAI(query, selectedSite);
       setAIResponse(res);
@@ -105,8 +233,15 @@ export default function App() {
 
   const handleExplainForecast = async (target) => {
     setIsLoadingAI(true);
+
     try {
-      const res = await VoltAIAPI.explainForecast(selectedSite, target === 'solar' ? 'solar_generation' : 'energy_consumption');
+      const res = await VoltAIAPI.explainForecast(
+        selectedSite,
+        target === 'solar'
+          ? 'solar_generation'
+          : 'energy_consumption'
+      );
+
       setAIResponse(res);
     } catch (err) {
       console.error('AI Forecast error:', err);
@@ -117,6 +252,7 @@ export default function App() {
 
   const handleExplainOptimization = async () => {
     setIsLoadingAI(true);
+
     try {
       const res = await VoltAIAPI.explainOptimization(selectedSite);
       setAIResponse(res);
@@ -129,6 +265,7 @@ export default function App() {
 
   const handleExplainAnomaly = async () => {
     setIsLoadingAI(true);
+
     try {
       const res = await VoltAIAPI.explainAnomaly(selectedSite);
       setAIResponse(res);
@@ -141,7 +278,9 @@ export default function App() {
 
   const handleTriggerAnomalyDetection = async () => {
     try {
-      const resp = await VoltAIAPI.triggerAnomalyDetection(selectedSite);
+      const resp =
+        await VoltAIAPI.triggerAnomalyDetection(selectedSite);
+
       if (resp && resp.anomalies) {
         setAnomalies(resp.anomalies);
       }
@@ -152,28 +291,29 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-dark-900 text-slate-100">
-      {/* Top Header Navigation */}
       <Header
         selectedSite={selectedSite}
         setSelectedSite={setSelectedSite}
         timeRange={timeRange}
         setTimeRange={setTimeRange}
-        onRefresh={() => { loadDashboardData(); loadForecast(); }}
+        onRefresh={() => {
+          loadDashboardData();
+          loadForecast();
+        }}
         onOpenUpload={() => setIsUploadOpen(true)}
         healthStatus={healthStatus}
         isLiveMode={isLiveMode}
         setIsLiveMode={setIsLiveMode}
       />
 
-      {/* Main Dashboard Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* KPI Cards Row */}
-        <KPICards summary={summary} latestTelemetry={null} />
+        <KPICards
+          summary={summary}
+          latestTelemetry={latestTelemetry}
+        />
 
-        {/* Energy Overview Chart */}
         <EnergyOverviewChart dailyData={dailyAnalytics} />
 
-        {/* 2-Column Grid: Forecast & Optimization */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ForecastPanel
             forecastData={forecastData}
@@ -189,10 +329,11 @@ export default function App() {
           />
         </div>
 
-        {/* Weather Telemetry */}
-        <WeatherPanel weatherStatus={weatherStatus} weatherRecords={weatherRecords} />
+        <WeatherPanel
+          weatherStatus={weatherStatus}
+          weatherRecords={weatherRecords}
+        />
 
-        {/* 2-Column Grid: Anomaly Engine & AI Assistant */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AnomalyPanel
             anomalies={anomalies}
@@ -209,11 +350,13 @@ export default function App() {
         </div>
       </main>
 
-      {/* CSV Ingestion Modal */}
       <CSVUploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={() => { loadDashboardData(); loadForecast(); }}
+        onSuccess={() => {
+          loadDashboardData();
+          loadForecast();
+        }}
       />
     </div>
   );
