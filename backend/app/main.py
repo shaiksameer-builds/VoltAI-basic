@@ -14,6 +14,7 @@ registered here as the application grows.
 
 from fastapi import FastAPI
 
+from backend.app.api.v1.analytics import router as analytics_router
 from backend.app.api.v1.energy import router as energy_router
 
 
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
 
     # ---- Routers ----
     application.include_router(energy_router)
+    application.include_router(analytics_router)
 
     # ---- Root ----
     @application.get("/", tags=["System"])
