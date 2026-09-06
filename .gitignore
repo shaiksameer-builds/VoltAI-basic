@@ -75,6 +75,13 @@ ml/models/*.pth
 ml/models/*.onnx
 ml/models/*.joblib
 ml/models/*.bin
+backend/ml/models/*.pkl
+backend/ml/models/*.h5
+backend/ml/models/*.pt
+backend/ml/models/*.pth
+backend/ml/models/*.onnx
+backend/ml/models/*.joblib
+backend/ml/models/*.bin
 *.ckpt
 *.ckpt.*
 wandb/

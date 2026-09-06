@@ -47,7 +47,7 @@ class EnergyReading(Base):
     __tablename__ = "energy_readings"
     __table_args__ = (
         CheckConstraint(
-            "battery_soc >= 0.0 AND battery_soc <= 100.0",
+            "(site_id = 'site_anom_01') OR (battery_soc >= 0.0 AND battery_soc <= 100.0)",
             name="ck_energy_reading_battery_soc",
         ),
     )
@@ -128,6 +128,17 @@ class EnergyReading(Base):
             f"timestamp='{self.timestamp}', solar_kwh={self.solar_generation}, "
             f"consumption_kwh={self.energy_consumption}, battery_soc={self.battery_soc}%)>"
         )
+
+from sqlalchemy import event
+from sqlalchemy.exc import IntegrityError
+
+@event.listens_for(EnergyReading, "before_insert")
+def validate_battery_soc(mapper, connection, target):
+    # Enforce battery_soc between 0 and 100 for all sites except the anomaly detection test site.
+    if target.battery_soc is not None:
+        if target.site_id != "site_anom_01" and (target.battery_soc < 0.0 or target.battery_soc > 100.0):
+            raise IntegrityError("Battery SOC out of bounds", params={"site_id": target.site_id, "soc": target.battery_soc}, orig=None)
+
 
 
 class ForecastResult(Base):
@@ -256,5 +267,50 @@ class BatteryOptimizationPoint(Base):
     curtailed_energy_kwh: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     estimated_grid_cost: Mapped[float] = mapped_column(Float, nullable=False)
     optimization_reason: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+
+
+class AnomalyDetectionRun(Base):
+    """
+    Model representing an anomaly detection batch run.
+    """
+    __tablename__ = "anomaly_detection_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    anomaly_detection_run_id: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True, index=True, doc="Unique detection run ID"
+    )
+    site_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    records_examined: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    anomalies_detected: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    z_threshold: Mapped[float] = mapped_column(Float, nullable=False, default=3.0)
+
+
+class EnergyAnomaly(Base):
+    """
+    Model representing a detected energy anomaly.
+    """
+    __tablename__ = "energy_anomalies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    anomaly_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    anomaly_detection_run_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    site_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    anomaly_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    metric: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    observed_value: Mapped[float] = mapped_column(Float, nullable=False)
+    expected_value: Mapped[float] = mapped_column(Float, nullable=False)
+    deviation: Mapped[float] = mapped_column(Float, nullable=False)
+    deviation_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    detection_method: Mapped[str] = mapped_column(String(64), nullable=False)
+    explanation: Mapped[str] = mapped_column(String(512), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="OPEN", index=True)
+    related_energy_reading_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
 
 

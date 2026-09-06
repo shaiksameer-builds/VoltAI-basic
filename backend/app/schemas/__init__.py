@@ -22,6 +22,15 @@ from backend.app.schemas.forecasting import (
     ForecastTarget,
     ModelTrainingResponse,
 )
+from backend.app.schemas.anomalies import (
+    AnomalyDetectionRequest,
+    AnomalyRecord,
+    AnomalyResponse,
+    AnomalySeverity,
+    AnomalyStatus,
+    AnomalySummary,
+    AnomalyType,
+)
 from backend.app.schemas.optimization import (
     BatteryConfig,
     GridPricingConfig,
@@ -51,6 +60,14 @@ __all__ = [
     "OptimizationRequest",
     "OptimizationResponse",
     "OptimizationSummary",
+    "AnomalyType",
+    "AnomalySeverity",
+    "AnomalyStatus",
+    "AnomalyDetectionRequest",
+    "AnomalyRecord",
+    "AnomalySummary",
+    "AnomalyResponse",
 ]
+
 
 
