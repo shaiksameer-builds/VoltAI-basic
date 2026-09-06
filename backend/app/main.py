@@ -14,6 +14,8 @@ registered here as the application grows.
 
 from fastapi import FastAPI
 
+from backend.app.api.v1.energy import router as energy_router
+
 
 def create_app() -> FastAPI:
     """
@@ -30,6 +32,9 @@ def create_app() -> FastAPI:
         ),
         version="0.1.0",
     )
+
+    # ---- Routers ----
+    application.include_router(energy_router)
 
     # ---- Root ----
     @application.get("/", tags=["System"])

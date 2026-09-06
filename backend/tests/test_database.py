@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from backend.app.database.connection import Base, init_db
 from backend.app.database.models import EnergyReading
@@ -31,6 +32,7 @@ def test_db():
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     init_db(target_engine=engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
