@@ -39,6 +39,14 @@ from backend.app.schemas.optimization import (
     OptimizationResponse,
     OptimizationSummary,
 )
+from backend.app.schemas.weather import (
+    NormalizedWeatherRecord,
+    WeatherFeatures,
+    WeatherIngestRequest,
+    WeatherIngestSummary,
+    WeatherRecord,
+    WeatherStatusResponse,
+)
 
 __all__ = [
     "EnergyReadingBase",
@@ -67,6 +75,12 @@ __all__ = [
     "AnomalyRecord",
     "AnomalySummary",
     "AnomalyResponse",
+    "NormalizedWeatherRecord",
+    "WeatherIngestRequest",
+    "WeatherIngestSummary",
+    "WeatherRecord",
+    "WeatherStatusResponse",
+    "WeatherFeatures",
 ]
 
 

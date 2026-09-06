@@ -26,7 +26,7 @@ Measurement Semantics & Energy Units:
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, DateTime, Float, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, Float, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.database.connection import Base
@@ -313,4 +313,97 @@ class EnergyAnomaly(Base):
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class WeatherReading(Base):
+    """
+    Normalized hourly weather observation for a VoltAI site.
 
+    Stores provider-agnostic weather data from any configured provider
+    (Open-Meteo, WeatherAPI, IMD, IoT sensors, etc.).
+
+    Uniqueness:
+        The composite unique constraint on (site_id, timestamp) prevents duplicate
+        records for the same site and hour. Multiple sites CAN share the same
+        timestamp (intentional — each site has its own weather reading).
+
+    Units:
+        temperature_c           : Degrees Celsius
+        relative_humidity_pct   : Percentage (0.0 – 100.0)
+        precipitation_mm        : Millimeters per hour
+        cloud_cover_pct         : Percentage (0.0 – 100.0)
+        wind_speed_ms           : Metres per second
+        wind_direction_deg      : Degrees (0 – 360)
+        shortwave_radiation_wm2 : Watts per square metre (W/m²)
+    """
+
+    __tablename__ = "weather_readings"
+    __table_args__ = (
+        UniqueConstraint("site_id", "timestamp", name="uq_weather_reading_site_timestamp"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    site_id: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+        doc="VoltAI site identifier",
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        doc="Hourly observation timestamp (UTC, timezone-aware)",
+    )
+    latitude: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        doc="Site latitude in decimal degrees",
+    )
+    longitude: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        doc="Site longitude in decimal degrees",
+    )
+
+    # --- Meteorological fields (all optional) ---
+    temperature_c: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Air temperature in °C"
+    )
+    relative_humidity_pct: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Relative humidity percentage"
+    )
+    precipitation_mm: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Hourly precipitation in mm"
+    )
+    cloud_cover_pct: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Total cloud cover percentage"
+    )
+    wind_speed_ms: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Wind speed in m/s"
+    )
+    wind_direction_deg: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Wind direction in degrees (0–360)"
+    )
+    shortwave_radiation_wm2: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, default=None, doc="Solar shortwave radiation in W/m²"
+    )
+
+    # --- Provenance ---
+    provider: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+        doc="Weather provider identifier (e.g., 'open_meteo')",
+    )
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        doc="Timestamp when this record was retrieved from provider (UTC)",
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<WeatherReading(id={self.id}, site_id='{self.site_id}', "
+            f"timestamp='{self.timestamp}', temp_c={self.temperature_c}, "
+            f"provider='{self.provider}')>"
+        )
