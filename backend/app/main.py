@@ -4,7 +4,10 @@ VoltAI Backend — Application Entry Point
 This is the FastAPI application factory. It creates and configures
 the main application instance.
 
-Currently provides only a health-check endpoint.
+Endpoints:
+    GET /        — Application identity and status.
+    GET /health  — Health check for monitoring.
+
 Additional routers, middleware, and startup events will be
 registered here as the application grows.
 """
@@ -21,19 +24,37 @@ def create_app() -> FastAPI:
     """
     application = FastAPI(
         title="VoltAI API",
-        description="AI-Powered Renewable Energy Intelligence & Optimization",
+        description=(
+            "AI-Powered Renewable Energy Intelligence & Optimization. "
+            "Built for Smart India Hackathon 2026 — Problem Statement SIH26200."
+        ),
         version="0.1.0",
     )
+
+    # ---- Root ----
+    @application.get("/", tags=["System"])
+    async def root():
+        """
+        Root endpoint.
+        Returns application identity and confirms the backend is running.
+        """
+        return {
+            "application": "VoltAI",
+            "description": "AI-Powered Renewable Energy Intelligence & Optimization",
+            "version": application.version,
+            "status": "running",
+        }
 
     # ---- Health Check ----
     @application.get("/health", tags=["System"])
     async def health_check():
         """
-        Basic health-check endpoint.
-        Returns the application status and version.
+        Health-check endpoint for monitoring.
+        Returns the current health status of the backend service.
         """
         return {
             "status": "healthy",
+            "service": "voltai-backend",
             "version": application.version,
         }
 
