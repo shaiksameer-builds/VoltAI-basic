@@ -9,3 +9,9 @@ uvicorn[standard]==0.30.6
 
 # Environment / configuration
 python-dotenv==1.0.1
+
+# Database ORM
+sqlalchemy==2.0.52
+
+# Testing
+pytest==9.1.1
