@@ -47,6 +47,15 @@ from backend.app.schemas.weather import (
     WeatherRecord,
     WeatherStatusResponse,
 )
+from backend.app.schemas.ai import (
+    AIExplanationResponse,
+    AIIntentEnum,
+    AIRequest,
+    AIStatusResponse,
+    ExplainAnomalyRequest,
+    ExplainForecastRequest,
+    ExplainOptimizationRequest,
+)
 
 __all__ = [
     "EnergyReadingBase",
@@ -81,6 +90,13 @@ __all__ = [
     "WeatherRecord",
     "WeatherStatusResponse",
     "WeatherFeatures",
+    "AIRequest",
+    "AIExplanationResponse",
+    "AIStatusResponse",
+    "AIIntentEnum",
+    "ExplainForecastRequest",
+    "ExplainOptimizationRequest",
+    "ExplainAnomalyRequest",
 ]
 
 

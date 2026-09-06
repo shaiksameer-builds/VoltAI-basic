@@ -14,6 +14,7 @@ registered here as the application grows.
 
 from fastapi import FastAPI
 
+from backend.app.api.v1.ai import router as ai_router
 from backend.app.api.v1.analytics import router as analytics_router
 from backend.app.api.v1.anomalies import router as anomalies_router
 from backend.app.api.v1.energy import router as energy_router
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     application.include_router(optimization_router)
     application.include_router(anomalies_router)
     application.include_router(weather_router)
+    application.include_router(ai_router)
 
 
 
