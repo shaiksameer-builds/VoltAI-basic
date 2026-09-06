@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from backend.app.api.v1.analytics import router as analytics_router
 from backend.app.api.v1.energy import router as energy_router
 from backend.app.api.v1.forecast import router as forecast_router
+from backend.app.api.v1.optimization import router as optimization_router
 
 
 def create_app() -> FastAPI:
@@ -39,6 +40,8 @@ def create_app() -> FastAPI:
     application.include_router(energy_router)
     application.include_router(analytics_router)
     application.include_router(forecast_router)
+    application.include_router(optimization_router)
+
 
 
     # ---- Root ----

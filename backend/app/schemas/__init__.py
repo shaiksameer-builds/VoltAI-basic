@@ -22,6 +22,14 @@ from backend.app.schemas.forecasting import (
     ForecastTarget,
     ModelTrainingResponse,
 )
+from backend.app.schemas.optimization import (
+    BatteryConfig,
+    GridPricingConfig,
+    OptimizationPoint,
+    OptimizationRequest,
+    OptimizationResponse,
+    OptimizationSummary,
+)
 
 __all__ = [
     "EnergyReadingBase",
@@ -37,5 +45,12 @@ __all__ = [
     "ForecastPoint",
     "ForecastResponse",
     "ModelTrainingResponse",
+    "BatteryConfig",
+    "GridPricingConfig",
+    "OptimizationPoint",
+    "OptimizationRequest",
+    "OptimizationResponse",
+    "OptimizationSummary",
 ]
+
 

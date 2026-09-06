@@ -200,3 +200,61 @@ class ForecastResult(Base):
             f"predicted_kwh={self.predicted_value_kwh})>"
         )
 
+
+class BatteryOptimizationRun(Base):
+    """
+    Model representing an optimization run execution.
+    """
+    __tablename__ = "battery_optimization_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    optimization_run_id: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True, index=True, doc="Unique run identifier"
+    )
+    site_id: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True, doc="Site identifier"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True, doc="Creation timestamp (UTC)"
+    )
+    horizon_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    battery_capacity_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    initial_soc_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    final_soc_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    total_charge_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    total_discharge_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    total_grid_import_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    total_grid_export_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_grid_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    grid_import_reduction_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    cost_savings: Mapped[float] = mapped_column(Float, nullable=False)
+    optimizer_version: Mapped[str] = mapped_column(String(64), nullable=False, default="v1.0-linprog")
+
+
+class BatteryOptimizationPoint(Base):
+    """
+    Model representing individual schedule points for an optimization run.
+    """
+    __tablename__ = "battery_optimization_points"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    optimization_run_id: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True, doc="Associated optimization run ID"
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True, doc="Interval timestamp (UTC)"
+    )
+    forecast_renewable_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    forecast_demand_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    forecast_balance_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    battery_soc_before_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    battery_charge_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    battery_discharge_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    battery_soc_after_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    grid_import_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    grid_export_kwh: Mapped[float] = mapped_column(Float, nullable=False)
+    curtailed_energy_kwh: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    estimated_grid_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    optimization_reason: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+
+

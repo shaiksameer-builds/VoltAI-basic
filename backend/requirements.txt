@@ -23,4 +23,8 @@ scikit-learn==1.9.0
 joblib==1.6.0
 pandas==3.0.5
 
+# Battery Optimization (Stage 7)
+scipy==1.18.1
+
+
 
