@@ -1,0 +1,11 @@
+# VoltAI Backend Dependencies
+# ============================
+# Only include packages needed for the current development stage.
+# Add new dependencies as features are implemented.
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Environment / configuration
+python-dotenv==1.0.1

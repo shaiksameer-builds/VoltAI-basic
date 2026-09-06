@@ -1,0 +1,112 @@
+# ============================================================
+# VoltAI .gitignore
+# Python + FastAPI + React + Machine Learning project
+# ============================================================
+
+# -------------------- Python --------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# -------------------- Environment Variables --------------------
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# -------------------- FastAPI / Uvicorn --------------------
+*.pid
+
+# -------------------- Node / React --------------------
+node_modules/
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.next/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# -------------------- IDE / Editor --------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# -------------------- OS --------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# -------------------- Machine Learning --------------------
+ml/models/*.pkl
+ml/models/*.h5
+ml/models/*.pt
+ml/models/*.pth
+ml/models/*.onnx
+ml/models/*.joblib
+ml/models/*.bin
+*.ckpt
+*.ckpt.*
+wandb/
+mlruns/
+lightning_logs/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# -------------------- Databases --------------------
+*.db
+*.sqlite3
+
+# -------------------- Logs --------------------
+*.log
+logs/
+
+# -------------------- Coverage / Testing --------------------
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+nosetests.xml
+
+# -------------------- Docker --------------------
+docker-compose.override.yml
+
+# -------------------- Misc --------------------
+*.bak
+*.tmp
+*.temp
+.cache/
