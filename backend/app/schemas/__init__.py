@@ -16,6 +16,13 @@ from backend.app.schemas.energy import (
     EnergyReadingResponse,
 )
 
+from backend.app.schemas.forecasting import (
+    ForecastPoint,
+    ForecastResponse,
+    ForecastTarget,
+    ModelTrainingResponse,
+)
+
 __all__ = [
     "EnergyReadingBase",
     "EnergyReadingCreate",
@@ -26,4 +33,9 @@ __all__ = [
     "SiteAnalyticsItem",
     "SiteAnalyticsResponse",
     "PeakDemandResponse",
+    "ForecastTarget",
+    "ForecastPoint",
+    "ForecastResponse",
+    "ModelTrainingResponse",
 ]
+

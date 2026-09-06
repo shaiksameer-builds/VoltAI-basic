@@ -248,3 +248,53 @@ def test_validation_required_fields(test_db):
             site_id="TEST_SITE",
             timestamp=None,
         )
+
+
+def test_forecast_result_model(test_db):
+    """
+    Test 6: Verify ForecastResult database model persistence and constraints.
+    """
+    from backend.app.database.models import ForecastResult
+
+    session, engine = test_db
+    inspector = inspect(engine)
+    assert "energy_forecasts" in inspector.get_table_names()
+
+    now = datetime.now(timezone.utc)
+    forecast = ForecastResult(
+        forecast_run_id="RUN-SITE001-20260906-120000",
+        site_id="site_001",
+        target="solar",
+        generated_at=now,
+        target_timestamp=now,
+        horizon_step=1,
+        predicted_value_kwh=45.2,
+        model_version="v1.0-hgb",
+    )
+    session.add(forecast)
+    session.commit()
+    session.refresh(forecast)
+
+    assert forecast.id is not None
+    assert forecast.id > 0
+    assert forecast.site_id == "site_001"
+    assert forecast.target == "solar"
+    assert forecast.horizon_step == 1
+    assert forecast.predicted_value_kwh == 45.2
+
+    # Check constraint: horizon_step must be between 1 and 24
+    invalid_step = ForecastResult(
+        forecast_run_id="RUN-BAD",
+        site_id="site_001",
+        target="solar",
+        generated_at=now,
+        target_timestamp=now,
+        horizon_step=25,
+        predicted_value_kwh=10.0,
+        model_version="v1.0",
+    )
+    session.add(invalid_step)
+    with pytest.raises(IntegrityError):
+        session.commit()
+    session.rollback()
+

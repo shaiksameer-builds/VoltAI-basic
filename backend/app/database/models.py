@@ -128,3 +128,75 @@ class EnergyReading(Base):
             f"timestamp='{self.timestamp}', solar_kwh={self.solar_generation}, "
             f"consumption_kwh={self.energy_consumption}, battery_soc={self.battery_soc}%)>"
         )
+
+
+class ForecastResult(Base):
+    """
+    Model representing persisted multi-step forecasting predictions.
+
+    Stores energy predictions for specific sites, targets, horizon steps, and timestamps.
+    """
+
+    __tablename__ = "energy_forecasts"
+    __table_args__ = (
+        CheckConstraint(
+            "horizon_step >= 1 AND horizon_step <= 24",
+            name="ck_forecast_result_horizon_step",
+        ),
+    )
+
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    forecast_run_id: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+        doc="Unique run identifier for a single forecast batch execution",
+    )
+    site_id: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+        doc="Identifier for the monitored facility, microgrid, or plant",
+    )
+    target: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        index=True,
+        doc="Target metric forecasted (e.g. solar, wind, demand, renewable, balance)",
+    )
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        doc="Timestamp when the forecast was generated (UTC)",
+    )
+    target_timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        doc="Target timestamp of the forecast point (UTC)",
+    )
+    horizon_step: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        doc="Horizon step offset (1 to 24 hours ahead)",
+    )
+    predicted_value_kwh: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        doc="Predicted energy value in kWh for the horizon step",
+    )
+    model_version: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        doc="Model version or baseline type used for generation",
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ForecastResult(id={self.id}, run_id='{self.forecast_run_id}', site_id='{self.site_id}', "
+            f"target='{self.target}', step={self.horizon_step}, target_ts='{self.target_timestamp}', "
+            f"predicted_kwh={self.predicted_value_kwh})>"
+        )
+
